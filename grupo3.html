@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>Three JS Project</title>
+    <style>
+        .world {
+            position: absolute;
+            overflow: hidden;
+            width: 100%;
+            height: 100%;
+        }
+
+        body {
+            margin: 0;
+            color: #444;
+            background: #f6f6f6;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- This DIV will hold the output -->
+    <div class="world" id="world"></div>
+
+    <script type="module">
+        import * as THREE from './libs/three.module.js';
+        import * as BufferGeometryUtils from './libs/BufferGeometryUtils.js'
+
+        let scene, renderer, camera;
+        let floor, sky, robot, shoulder1, shoulder2, hip1, hip2, elbow1, elbow2, ankle1, ankle2;
+        let mousePos = { x: 0, y: 0 };
+        let isMovingRight = false
+        let isMovingLeft = false
+        let invertMovement = false
+        let acc = 0
+        let maxAcc = 1
+
+
+        let lightParams = {
+            object: null,
+            helper: null,
+            helperShadow: null,
+            curve: null,
+            position: 0,
+        };
+
+
+
+        window.onload = function init() {
+            createScene();
+            createRobot();
+            createFloor();
+            createSky();
+            createLights();
+            renderer.setAnimationLoop(render);
+        }
+
+        function createScene() {
+            scene = new THREE.Scene();
+            scene.fog = new THREE.Fog(0xF7AAAA, 100);
+
+            camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 1, 1000);
+            camera.position.x = 0;
+            camera.position.z = 200;
+            camera.position.y = 100;
+
+            renderer = new THREE.WebGLRenderer();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.shadowMap.enabled = true;
+            renderer.setClearColor("#361d32");
+            document.getElementById('world').appendChild(renderer.domElement);
+
+            window.addEventListener('resize', handleWindowResize, false);
+        }
+
+        function handleWindowResize() {
+            const HEIGHT = window.innerHeight;
+            const WIDTH = window.innerWidth;
+            renderer.setSize(WIDTH, HEIGHT);
+            camera.aspect = WIDTH / HEIGHT;
+            camera.updateProjectionMatrix();
+        }
+
+        function createLights() {
+            //Create a DirectionalLight and turn on shadows for the light
+            const light = new THREE.DirectionalLight( 0xffffff, 1, 100 );
+            light.position.set( 0, 1, 0 ); //default; light shining from top
+            light.castShadow = true; // default false
+            scene.add( light );
+
+            //Set up shadow properties for the light
+            light.shadow.mapSize.width = 512; // default
+            light.shadow.mapSize.height = 512; // default
+            light.shadow.camera.near = 0.5; // default
+            light.shadow.camera.far = 500; // default
+        }
+
+
+        function createFloor() {
+            let geometry = new THREE.CylinderGeometry(600, 600, 800, 40, 10);
+            geometry.rotateX(-Math.PI / 2);
+
+            let material = new THREE.MeshPhongMaterial({
+                color: 0x68c3c0,
+                transparent: true,
+                opacity: .6,
+                flatShading: true
+            });
+
+            
+
+            floor = new THREE.Mesh(geometry, material);
+            floor.position.y = -600;
+            floor.castShadow = false
+            floor.receiveShadow = true
+            scene.add(floor);
+        }
+
+        function createSky() {
+            sky = new THREE.Object3D();
+            sky.position.y = -600;
+
+            const nClouds = 20;
+            const stepAngle = Math.PI * 2 / nClouds;
+
+            for (let i = 0; i < nClouds; i++) {
+                let cloudGeometries = [];
+
+                let nBlocs = 3 + Math.floor(Math.random() * 3);
+                for (let j = 0; j < nBlocs; j++) {
+                    let cloudGeometry = new THREE.BoxGeometry(20, 20, 20);
+
+                    cloudGeometry.translate.x = j * 15;
+                    cloudGeometry.translate.y = Math.random() * 10;
+                    cloudGeometry.translate.z = Math.random() * 10;
+                    cloudGeometry.rotateZ(Math.random() * Math.PI * 2);
+                    cloudGeometry.rotateY(Math.random() * Math.PI * 2);
+
+                    let s = .1 + Math.random() * 1.9;
+
+                    cloudGeometry.scale(s, s, s);
+                    cloudGeometries.push(cloudGeometry)
+                }
+
+                const cloudMergedGeom = BufferGeometryUtils.mergeBufferGeometries(cloudGeometries);
+                const cloud = new THREE.Mesh(cloudMergedGeom, new THREE.MeshBasicMaterial({ color: 0xedd2cb })
+                )
+
+                // set the rotation and the position of each cloud
+                let a = stepAngle * i; // final angle of the cloud
+                let h = 750 + Math.random() * 200; // distance between the center of the axis and the cloud itself
+
+                // Trigonometry
+                cloud.position.y = Math.sin(a) * h;
+                cloud.position.x = Math.cos(a) * h;
+
+                // position the clouds at random depths inside of the scene
+                cloud.position.z = -400 - Math.random() * 400;
+
+                // rotate the cloud according to its position
+                cloud.rotation.z = a + Math.PI / 2;
+
+                // add the group of each cloud mesh to the sky
+                sky.add(cloud);
+            }
+
+            scene.add(sky);
+        }
+
+        function createRobot() {
+            robot = new THREE.Group();
+
+
+            const materialBege = new THREE.MeshBasicMaterial({ color: 0xfdebd3 });
+            const materialBrown = new THREE.MeshBasicMaterial({ color: 0x59332e });
+            const materialRed = new THREE.MeshBasicMaterial({ color: 0xf25346 });
+            const materialBlue = new THREE.MeshBasicMaterial({color: 0x264e70})
+
+            //Ombros
+            //1
+            shoulder1 = new THREE.Object3D();
+            robot.add(shoulder1);
+            shoulder1.position.z = 23
+            shoulder1.position.y = -20
+            //2
+            shoulder2 = new THREE.Object3D();
+            robot.add(shoulder2);
+            shoulder2.position.z = -23
+            shoulder2.position.y = -20
+
+            //Cabeça
+            let geometryHead = new THREE.BoxGeometry(25,28,25)
+            let head = new THREE.Mesh(geometryHead,materialBege)
+            head.position.y = 5
+            robot.add(head)
+            
+            //Pescoço
+            let geometryNeck = new THREE.BoxGeometry(7,20,7)
+            let neck = new THREE.Mesh(geometryNeck,materialBege)
+            neck.position.y = -10; 
+            robot.add(neck) 
+
+            //Tronco
+            let geometryChest = new THREE.BoxGeometry(20,45,35)
+            let chest = new THREE.Mesh(geometryChest,materialBlue)
+            chest.position.y = -40;
+            robot.add(chest)
+
+            //Braços
+            //1
+            let geometryArm = new THREE.BoxGeometry(10,25,10)
+            let arm1 = new THREE.Mesh(geometryArm,materialBege)
+            arm1.position.y = -10 
+            arm1.position.z = 0
+            shoulder1.add(arm1) 
+            //2
+            let arm2 = new THREE.Mesh(geometryArm,materialBege)
+            arm2.position.y = -10; 
+            arm2.position.z = 0
+            shoulder2.add(arm2)
+
+            //Cotovelos
+            //1
+            elbow1 = new THREE.Object3D();
+            elbow1.position.z = 0
+            elbow1.position.y = -17
+            elbow1.position.x = -8
+            arm1.add(elbow1);
+            //2
+            elbow2 = new THREE.Object3D();
+            elbow2.position.z = 0
+            elbow2.position.y = -17
+            elbow2.position.x = -8
+            arm2.add(elbow2);
+
+            //Antebraços
+            let geometryForeArm = new THREE.BoxGeometry(9,25,10)
+            let foreArm1 = new THREE.Mesh(geometryForeArm,materialBege)
+            let foreArm2 = new THREE.Mesh(geometryArm,materialBege)
+            elbow1.rotation.z = -0.9
+            elbow1.add(foreArm1)
+            elbow2.rotation.z = -0.9
+            elbow2.add(foreArm2)
+
+            //Anca
+            //1
+            hip1 = new THREE.Object3D();
+            robot.add(hip1);
+            hip1.position.z = 10
+            hip1.position.y = -60
+            hip1.position.x = -5
+            //2
+            hip2 = new THREE.Object3D();
+            robot.add(hip2);
+            hip2.position.z = -7
+            hip2.position.y = -60
+            hip2.position.x = 0
+            
+            //Pernas
+            //1
+            let geometryLeg = new THREE.BoxGeometry(20,45,13)
+            let leg1 = new THREE.Mesh(geometryLeg,materialRed)
+            leg1.position.y = -25
+            leg1.position.z = 0
+            leg1.position.x = 5
+            hip1.add(leg1)
+            //2
+            let leg2 = new THREE.Mesh(geometryLeg,materialRed)
+            leg2.position.y = -25
+            leg2.position.z = -3
+            leg1.position.x = 5
+            hip2.add(leg2)
+
+            //Tornozelo
+            ankle1 = new THREE.Object3D();
+            leg1.add(ankle1);
+            
+            ankle1.position.z = 0
+            ankle1.position.y = -20
+            ankle1.position.x = 0
+            //2
+            ankle2 = new THREE.Object3D();
+            leg2.add(ankle2);
+            ankle2.position.z = 0
+            ankle2.position.y = -20
+            ankle2.position.x = 0
+ 
+            //Pés
+            //1
+            let geometryFoot = new THREE.BoxGeometry(27,7,13)
+            let foot1 = new THREE.Mesh(geometryFoot,materialBlue)
+            foot1.position.y = -6
+            foot1.position.z = 0
+            foot1.position.x = -3
+            ankle1.add(foot1)
+            //2
+            let foot2 = new THREE.Mesh(geometryFoot,materialBlue)
+            foot2.position.y = -6
+            foot2.position.z = 0
+            foot2.position.x = -3
+            ankle2.add(foot2)
+            
+            //Robot extras
+            robot.scale.set(0.5, 0.5, 0.5)
+            robot.rotation.y = 0
+
+            robot.castShadow = true;
+            robot.receiveShadow = true;
+
+            // robot.traverse(function (child) {
+            //     if (child instanceof THREE.Mesh) {
+            //         child.castShadow = true;
+            //         child.receiveShadow = true;
+            //     }
+            // });
+
+            scene.add(robot);
+        }
+
+        function round(num, casasDecimais) {
+            casasDecimais = typeof casasDecimais !== 'undefined' ?  casasDecimais : 2;
+            return +(Math.floor(num + ('e+' + casasDecimais)) + ('e-' + casasDecimais));
+        };
+
+        function render() {
+            if(isMovingRight) {
+                sky.rotation.z += 0.01;
+                floor.rotation.z += 0.005;
+                if(robot.rotation.y != 3.2 && robot.rotation.y < 3.2) {
+                    robot.rotation.y +=0.05
+                }
+                if(shoulder1.rotation.z >= 1 || shoulder2.rotation.z <= -1.6) {
+                    invertMovement = false
+                }
+                if (shoulder1.rotation.z <= -1.6 || shoulder2.rotation.z >= 1) {
+                    invertMovement = true
+                }
+                if(invertMovement) {
+                    if(acc < maxAcc) {
+                        shoulder1.rotation.z += 0.03 *acc
+                        shoulder2.rotation.z -= 0.03 *acc
+                        hip1.rotation.z -= 0.03 * acc
+                        hip2.rotation.z += 0.03 * acc
+                        acc+= 0.02
+                    }
+                    else {
+                        shoulder1.rotation.z += 0.03
+                        shoulder2.rotation.z -= 0.03
+                        hip1.rotation.z -= 0.03 
+                        hip2.rotation.z += 0.03 
+                    }
+                }
+                else {
+                    if(acc < maxAcc) {
+                        shoulder1.rotation.z -= 0.03 *acc
+                        shoulder2.rotation.z += 0.03 *acc
+                        hip1.rotation.z += 0.03 * acc
+                        hip2.rotation.z -= 0.03 * acc
+                        acc+= 0.02
+                    }
+                    else {
+                        shoulder1.rotation.z -= 0.03
+                        shoulder2.rotation.z += 0.03
+                        hip1.rotation.z += 0.03
+                        hip2.rotation.z -= 0.03
+                    }
+                }
+                
+            }
+            else if(isMovingLeft) {
+                sky.rotation.z -= 0.01;
+                floor.rotation.z -= 0.005;
+                if(robot.rotation.y != 0 && robot.rotation.y > 0) {
+                    robot.rotation.y -=0.05
+                }
+                if(shoulder2.rotation.z >= 1 || shoulder1.rotation.z <= -1.6) {
+                    invertMovement = false
+                }
+                if (shoulder2.rotation.z <= -1.6 || shoulder1.rotation.z >= 1) {
+                    invertMovement = true
+                }
+                if(invertMovement) {
+                    if(acc < maxAcc) {
+                        shoulder1.rotation.z -= 0.03 *acc
+                        shoulder2.rotation.z += 0.03 *acc
+                        hip1.rotation.z += 0.03 *acc
+                        hip2.rotation.z -= 0.03 *acc
+                        acc+= 0.02
+                    }
+                    else {
+                        shoulder1.rotation.z -= 0.03
+                        shoulder2.rotation.z += 0.03
+                        hip1.rotation.z += 0.03 
+                        hip2.rotation.z -= 0.03 
+                    }
+                }
+                else {
+                    if(acc < maxAcc) {
+                        shoulder1.rotation.z += 0.03 *acc
+                        shoulder2.rotation.z -= 0.03 *acc
+                        hip1.rotation.z -= 0.03 *acc
+                        hip2.rotation.z += 0.03 *acc
+                        acc+= 0.02
+                    }
+                    else {
+                        shoulder1.rotation.z += 0.03
+                        shoulder2.rotation.z -= 0.03
+                        hip1.rotation.z -= 0.03
+                        hip2.rotation.z += 0.03
+                    }
+                }
+                
+            }
+            else {
+                if(robot.rotation.y != 1.6 && robot.rotation.y > 1.6) {
+                    robot.rotation.y -=0.05
+                }
+                if(robot.rotation.y != 1.6 && robot.rotation.y < 1.6) {
+                    robot.rotation.y +=0.05
+                }
+
+                if(round(shoulder1.rotation.z, 1) > 0) {
+                    shoulder1.rotation.z -= 0.05
+                }
+                if(round(shoulder1.rotation.z, 1) < 0) {
+                    shoulder1.rotation.z += 0.05
+                }
+                if(round(shoulder2.rotation.z, 1) > 0) {
+                    shoulder2.rotation.z -= 0.05
+                }
+                if(round(shoulder2.rotation.z, 1) < 0) {
+                    shoulder2.rotation.z += 0.05
+                }
+                if(round(hip1.rotation.z, 1) > 0) {
+                    hip1.rotation.z -= 0.05
+                }
+                if(round(hip1.rotation.z, 1) < 0) {
+                    hip1.rotation.z += 0.05
+                }
+                if(round(hip2.rotation.z, 1) > 0) {
+                    hip2.rotation.z -= 0.05
+                }
+                if(round(hip2.rotation.z, 1) < 0) {
+                    hip2.rotation.z += 0.05
+                }
+            }
+
+
+            // update plane position - light will follow the plane
+            updateRobot();
+
+            // render
+            renderer.render(scene, camera);
+        }
+
+
+        // HANDLE MOUSE EVENTS
+        
+
+        function updateRobot() {
+            let targetX = mousePos.x * 100;
+            let targetY = mousePos.y * 100;
+
+            // update the airplane's position
+            robot.position.x = 0
+            robot.position.y = 80
+
+    
+        }
+
+        document.addEventListener("keydown", e => {
+            if(e.key == 'd') {
+                isMovingRight = true
+            }
+            if(e.key == 'a') {
+                isMovingLeft = true
+            }
+        })
+
+        document.addEventListener("keyup", e => {
+            if(e.key == 'd') {
+                isMovingRight = false
+            }
+            if(e.key == 'a') {
+                isMovingLeft = false
+            }
+        })
+
+    </script>
+</body>
+
+</html>

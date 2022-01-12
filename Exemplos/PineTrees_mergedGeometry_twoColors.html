@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>Pine Trees</title>
+    <style>
+        body {
+            /* set margin to 0 and overflow to hidden, to use the complete page */
+            margin: 0;
+            overflow: hidden;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- HTML body will hold the Output -->
+    <script type="module">
+        import * as THREE from './libs/three.module.js';
+        import * as BufferGeometryUtils from './libs/BufferGeometryUtils.js';
+
+        let camera, scene, renderer;
+
+        // once everything is loaded, we run our Three.js stuff
+        window.onload = function init() {
+            /*********************
+             * SCENE 
+             * *******************/
+            // create an empty scene, that will hold all our elements such as objects, cameras and lights
+            scene = new THREE.Scene();
+
+
+            /*********************
+             * CAMERA 
+             * *******************/
+            // create a camera, which defines where we're looking at
+            const aspect = window.innerWidth / window.innerHeight;
+            camera = new THREE.PerspectiveCamera(75, aspect, 0.1, 100);
+            camera.position.x = camera.position.y = 2;
+            camera.position.z = 5;
+            camera.lookAt(0, 2, 0); //points the camera to world point (0,2,0)
+
+
+            /*********************
+             * RENDERER 
+             * *******************/
+            // create a render and set the size
+            renderer = new THREE.WebGLRenderer({ antialias: false }); // aliasing (jagged edges when rendering)
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            // configure renderer clear color
+            renderer.setClearColor("#444444");
+
+            // add the output of the renderer to an HTML element (this case, the body)
+            document.body.appendChild(renderer.domElement);
+
+
+            /*******************************************************************************
+             * PINETREE = SINGLE geometry created by merging multiple geometries 
+             * ****************************************************************************/
+            const geometries = [];
+
+            // define the two colors: brown for the trunk and green for the leaves
+            const colorBrown = new THREE.Color(0xbb6600);
+            const colorGreen = new THREE.Color(0x00ff00);
+
+            const trunk = new THREE.CylinderGeometry(0.5, 0.5, 2);
+
+            const colorsTrunk = []; // array of colors for each vertex of the trunk geometry
+            for (let i = 0; i < trunk.attributes.position.count; i++)
+                colorsTrunk.push(colorBrown.r, colorBrown.g, colorBrown.b);
+            // add color attribute to the trunk buffer geometry
+            trunk.setAttribute(
+                'color',
+                new THREE.BufferAttribute(new Float32Array(colorsTrunk), 3));
+
+            geometries.push(trunk);
+
+
+            const level1 = new THREE.ConeGeometry(3, 2, 8);
+            const colorsLevels = []; // array of colors for each vertex of the leaves geometry
+            // Do this ONLY ONCE, since ALL 3 level geometries have the SAME number of vertices
+            for (let i = 0; i < level1.attributes.position.count; i++)
+                colorsLevels.push(colorGreen.r, colorGreen.g, colorGreen.b);
+
+            level1.translate(0, 2, 0)
+            // add color attribute to the level1 buffer geometry
+            level1.setAttribute(
+                'color',
+                new THREE.BufferAttribute(new Float32Array(colorsLevels), 3));
+            geometries.push(level1);
+
+            const level2 = new THREE.ConeGeometry(2, 2, 8);
+            level2.translate(0, 3, 0)
+            // add color attribute to the level2 buffer geometry
+            level2.setAttribute(
+                'color',
+                new THREE.BufferAttribute(new Float32Array(colorsLevels), 3));
+            geometries.push(level2);
+
+            const level3 = new THREE.ConeGeometry(1.5, 2, 8);
+            level3.translate(0, 4, 0)
+            // add color attribute to the level3 buffer geometry
+            level3.setAttribute(
+                'color',
+                new THREE.BufferAttribute(new Float32Array(colorsLevels), 3));
+            geometries.push(level3);
+
+            const pineTreeGeometry = BufferGeometryUtils.mergeBufferGeometries(geometries);
+            const pineTree = new THREE.Mesh(
+                pineTreeGeometry,
+                new THREE.MeshBasicMaterial({ vertexColors: true })
+            )
+            scene.add(pineTree)
+
+            // console.log(pineTree.geometry.attributes)
+
+            /*************************
+            * AXES HELPER
+            *************************/
+            // show axes for the WORLD CS
+            let axes = new THREE.AxesHelper(6);
+            scene.add(axes);
+
+
+            /*****************************
+             * RENDER 
+             * ***************************/
+            // render the scene into viewport using the camera
+            renderer.render(scene, camera);
+        }
+
+    </script>
+</body>
+
+</html>

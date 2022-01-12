@@ -1,0 +1,174 @@
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>ThreeJS - Lights</title>
+    <style>
+        body {
+            /* set margin to 0 and overflow to hidden, to use the complete page */
+            margin: 0;
+            overflow: hidden;
+        }
+    </style>
+
+</head>
+
+<body>
+    <!-- HTML body will hold the Output -->
+    <script type="module">
+        import * as THREE from './libs/three.module.js';
+        import { OrbitControls } from './libs/OrbitControls.js';
+
+        let renderer = null,
+            scene = null,
+            camera = null,
+            ambientLight;
+
+        window.onload = function init() {
+            /*********************
+             * SCENE 
+             * *******************/
+            // create an empty scene, that will hold all our elements such as objects, cameras and lights
+            scene = new THREE.Scene();
+
+
+            /*********************
+             * CAMERA 
+             * *******************/
+            // create a camera, which defines where we're looking at
+            const aspect = window.innerWidth / window.innerHeight;
+            camera = new THREE.PerspectiveCamera(45, aspect, 0.1, 1000);
+            camera.position.set(-200, 350, 650); // eye
+            camera.lookAt(0, 0, 0);              // lookat
+
+            /*********************
+             * RENDERER 
+             * *******************/
+            // create a render and set the size
+            renderer = new THREE.WebGLRenderer({ antialias: false }); // aliasing (jagged edges when rendering)
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setClearColor(0x66ccff);
+
+            // add the output of the renderer to an HTML element (this case, the body)
+            document.body.appendChild(renderer.domElement);
+
+            /*********************
+            * CONTROLS 
+            *********************/
+            const controls = new OrbitControls(camera, renderer.domElement);
+
+            /*****************************
+            * LIGHTS 
+            ****************************/
+            //ambient light
+            ambientLight = new THREE.AmbientLight(0x404040, 2);
+            ambientLight.visible = true;
+            scene.add(ambientLight);
+
+            /*****************************
+             * MESHES
+             * ***************************/
+            let material = new THREE.MeshBasicMaterial({ color: 0x0087E6 });
+
+            let torus = new THREE.Mesh(new THREE.TorusBufferGeometry(50, 10, 16), material);
+            torus.position.set(0, 50, 250);
+            torus.rotation.x = -90 * Math.PI / 180;
+            scene.add(torus);
+
+            let cylinder = new THREE.Mesh(new THREE.CylinderGeometry(0, 50, 100), material);
+            cylinder.position.set(150, 50, 0);
+            scene.add(cylinder);
+
+            let cube = new THREE.Mesh(new THREE.BoxGeometry(100, 100, 100), material);
+            cube.position.y = 50;
+            scene.add(cube);
+
+            let sphere = new THREE.Mesh(new THREE.SphereGeometry(50, 4, 4), material);
+            sphere.position.set(-150, 50, 0);
+            scene.add(sphere);
+
+            // Create a plane 
+            let planeGeometry = new THREE.PlaneBufferGeometry(10000, 10000, 32, 32);
+            let planeMaterial = new THREE.MeshLambertMaterial({ color: 0xb69a77, side: THREE.DoubleSide });
+            let plane = new THREE.Mesh(planeGeometry, planeMaterial);
+            plane.name = "plane"
+            plane.rotation.x = - Math.PI / 2;
+            plane.position.y = -1;
+            scene.add(plane);
+
+            // Run the run loop
+            renderer.setAnimationLoop(render);
+
+            /*********************
+            * KEY HANDLING 
+            *********************/
+            document.onkeydown = handleKeyDown;
+        }
+
+
+        function render() {
+            // // move the light 
+            // light.position.x = 2 * Math.sin(Date.now() / 1000);
+            // pointLightHelper.update();
+
+            renderer.render(scene, camera);
+        }
+
+
+        function handleKeyDown(e) {
+            let char = e.key;
+
+            console.log(char)
+
+            /*****************************
+            * CHANGE MATERIAL 
+            ****************************/
+            // BASIC
+            if (char == "b") {
+                //Go through all children of the scene object and search for a Mesh
+                scene.traverse(function (child) {
+                    if (child instanceof THREE.Mesh && child.name == "") {
+                        child.material = new THREE.MeshBasicMaterial({ color: 0x0087E6 });
+                    }
+                });
+            }
+            // LAMBERT
+            else if (char == "l") {
+                scene.traverse(function (child) {
+                    if (child instanceof THREE.Mesh && child.name == "") {
+                        child.material = new THREE.MeshLambertMaterial({ color: 0x0087E6 });
+                    }
+                });
+            }
+            //PHONG (SMOOTH SHADING)
+            else if (char == "p") {
+                scene.traverse(function (child) {
+                    if (child instanceof THREE.Mesh && child.name == "") {
+                        child.material = new THREE.MeshPhongMaterial(
+                            { color: 0x0087E6, shininess: 100 });
+                    }
+                });
+            }
+
+
+            /*****************************
+            * CHANGE LIGHTS 
+            ****************************/
+            if (char == "1") {
+                ambientLight.visible = !ambientLight.visible;
+            }
+
+
+            /*****************************
+             * RENDER 
+             * ***************************/
+            renderer.render(scene, camera);
+        }
+
+
+
+
+    </script>
+</body>
+
+</html>

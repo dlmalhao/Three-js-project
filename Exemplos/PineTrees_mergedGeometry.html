@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>Pine Trees</title>
+    <style>
+        body {
+            /* set margin to 0 and overflow to hidden, to use the complete page */
+            margin: 0;
+            overflow: hidden;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- HTML body will hold the Output -->
+    <script type="module">
+        import * as THREE from './libs/three.module.js';
+        import * as BufferGeometryUtils from './libs/BufferGeometryUtils.js';
+
+        let camera, scene, renderer;
+        
+        // once everything is loaded, we run our Three.js stuff
+        window.onload = function init() {
+            /*********************
+             * SCENE 
+             * *******************/
+            // create an empty scene, that will hold all our elements such as objects, cameras and lights
+            scene = new THREE.Scene();
+
+
+            /*********************
+             * CAMERA 
+             * *******************/
+            // create a camera, which defines where we're looking at
+            const aspect = window.innerWidth / window.innerHeight;
+            camera = new THREE.PerspectiveCamera(75, aspect, 0.1, 100);
+            camera.position.x = camera.position.y = 2;
+            camera.position.z = 5;
+            camera.lookAt(0, 2, 0); //points the camera to world point (0,2,0)
+
+
+            /*********************
+             * RENDERER 
+             * *******************/
+            // create a render and set the size
+            renderer = new THREE.WebGLRenderer({ antialias: false }); // aliasing (jagged edges when rendering)
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            // configure renderer clear color
+            renderer.setClearColor("#444444");
+
+            // add the output of the renderer to an HTML element (this case, the body)
+            document.body.appendChild(renderer.domElement);
+
+
+            /*******************************************************************************
+             * PINETREE = SINGLE geometry created by merging multiple geometries 
+             * ****************************************************************************/
+            const geometries = [];
+            
+            const trunk = new THREE.CylinderGeometry(0.5, 0.5, 2);
+            geometries.push( trunk );
+
+            const level1 = new THREE.ConeGeometry(3, 2, 8);
+            level1.translate(0, 2, 0)
+            geometries.push( level1 );
+
+            const level2 = new THREE.ConeGeometry(2, 2, 8);
+            level2.translate(0, 3, 0)
+            geometries.push( level2 );
+
+            const level3 = new THREE.ConeGeometry(1.5, 2, 8);
+            level3.translate(0, 4, 0)
+            geometries.push( level3 );
+
+            const pineTreeGeometry = BufferGeometryUtils.mergeBufferGeometries( geometries );
+
+            const pineTree = new THREE.Mesh(
+                pineTreeGeometry,
+                new THREE.MeshNormalMaterial({wireframe:false})
+            )
+            scene.add(pineTree)
+
+            // console.log(pineTree)
+
+            /*************************
+            * AXES HELPER
+            *************************/
+            // show axes for the WORLD CS
+            let axes = new THREE.AxesHelper(6);
+            scene.add(axes);
+
+
+            /*****************************
+             * RENDER 
+             * ***************************/
+            // render the scene into viewport using the camera
+            renderer.render(scene, camera);
+        }
+
+    </script>
+</body>
+
+</html>

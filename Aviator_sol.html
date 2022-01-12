@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>The Aviator: Part 3</title>
+    <style>
+        .world {
+            position: absolute;
+            overflow: hidden;
+            width: 100%;
+            height: 100%;
+        }
+
+        body {
+            margin: 0;
+            color: #444;
+            background: #f6f6f6;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- This DIV will hold the output -->
+    <div class="world" id="world"></div>
+
+    <script type="module">
+        import * as THREE from './libs/three.module.js';
+        import * as BufferGeometryUtils from './libs/BufferGeometryUtils.js';
+
+        // THREEJS RELATED VARIABLES
+        let scene, renderer, camera;
+
+        // 3D Models
+        let sea, sky, plane, propeller;
+
+        // plane will moves according to mouse cursor position
+        let mousePos = { x: 0, y: 0 };
+
+        // Directional light movement
+        let lightParams = {
+            object: null,
+            helper: null,
+            helperShadow: null,
+            curve: null,
+            position: 0,
+        };
+
+        let verts = [] // dynamic sea
+
+        window.onload = function init() {
+            // set up the scene, the camera and the renderer
+            createScene();
+
+            // add the objects
+            createPlane();
+            createSea();
+            createSky();
+
+            // add the lights
+            createLights();
+
+            // listen to the mouse
+            document.addEventListener('mousemove', handleMouseMove, false);
+
+            // set the animation function
+            renderer.setAnimationLoop(render);
+        }
+
+        //INIT THREE JS, SCREEN, SCENE, CAMERA AND MOUSE EVENTS
+        function createScene() {
+            // create an empty scene, that will hold all our elements such as objects, cameras and lights
+            scene = new THREE.Scene();
+
+            scene.fog = new THREE.Fog(0xf7d9aa, 100);
+
+            // create a camera, which defines where we're looking at
+            camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 1, 1000);
+            // position the camera
+            camera.position.x = 0;
+            camera.position.z = 200;
+            camera.position.y = 100;
+
+            // create a render and set the size
+            renderer = new THREE.WebGLRenderer();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+
+            // configure renderer clear color
+            renderer.setClearColor("#e4e0ba");
+
+            /*****************************
+            * SHADOWS 
+            ****************************/
+            // enable shadow rendering
+            renderer.shadowMap.enabled = true;
+
+            // add the output of the renderer to the DIV with id "world"
+            document.getElementById('world').appendChild(renderer.domElement);
+
+            // listen to the screen: if the user resizes it we have to update the camera and the renderer size
+            window.addEventListener('resize', handleWindowResize, false);
+        }
+
+        function handleWindowResize() {
+            // update height and width of the renderer and the camera
+            const HEIGHT = window.innerHeight;
+            const WIDTH = window.innerWidth;
+            renderer.setSize(WIDTH, HEIGHT);
+            camera.aspect = WIDTH / HEIGHT;
+            camera.updateProjectionMatrix();
+        }
+
+        function createLights() {
+            // A hemisphere light is a gradient colored light 
+            // Parameters: sky color, ground color, intensity of the light
+            let hemisphereLight = new THREE.HemisphereLight(0xaaaaaa, 0x000000, 0.9);
+            scene.add(hemisphereLight);
+
+            // A directional light shines from a specific direction. 
+            // It acts like the sun, that means that all the rays produced are parallel.
+            lightParams.object = new THREE.DirectionalLight(0xffffff, .9);
+            lightParams.object.position.set(130, 130, 50);
+
+            /**************
+             * SHADOWS
+             **************/
+            lightParams.object.castShadow = true;
+            // augment the visible volume of the projected shadow
+            // console.log(lightParams.object.shadow.camera)
+            lightParams.object.shadow.camera.left = -50;
+            lightParams.object.shadow.camera.right = 50;
+            lightParams.object.shadow.camera.top = 50;
+            lightParams.object.shadow.camera.bottom = -50;
+
+            // make the hemisphere light FOLLOW THE PLANE object
+            lightParams.object.target = plane;
+
+            // to activate the lights, just add them to the scene
+            scene.add(lightParams.object);
+
+            /*HELPERS*/
+            // directional light helper
+            lightParams.helper = new THREE.DirectionalLightHelper(lightParams.object, 5);
+            scene.add(lightParams.helper);
+
+            //HELPER to visualize the SHADOW area of influence
+            lightParams.helperShadow = new THREE.CameraHelper(lightParams.object.shadow.camera);
+            scene.add(lightParams.helperShadow);
+        }
+
+        function createSea() {
+            // create the geometry (shape) of the cylinder: 
+            // parameters are: radius top, radius bottom, height, number of segments on the radius, number of segments vertically
+            let geometry = new THREE.CylinderGeometry(600, 600, 800, 40, 10);
+            // rotate the geometry on the x axis (local transformation)
+            geometry.rotateX(-Math.PI / 2);
+
+            // SAVE initial vertices coordinates and settings for their circular motion
+            for (let i = 0; i < geometry.attributes.position.count; i++) {
+                if (geometry.attributes.position.getX(i) == 0 && geometry.attributes.position.getY(i) == 600 && geometry.attributes.position.getZ(i) == -400) {
+                    console.log(i)
+                }
+
+                verts.push({
+                    x: geometry.attributes.position.getX(i),
+                    y: geometry.attributes.position.getY(i),
+
+                    ang: Math.random() * Math.PI * 2,   // initial angle
+                    amp: 4 + Math.random() * 4,        // radius
+                    speed: 0.04 + Math.random() * 0.06  // angular velocity
+                });
+            }
+            console.log(geometry.attributes)
+
+            // create the material
+            let material = new THREE.MeshPhongMaterial({
+                color: 0x68c3c0,
+                transparent: true,
+                opacity: .6,
+                flatShading: true
+            });
+            // // create the material
+            // let material = new THREE.MeshBasicMaterial({
+            //     color: 0x68c3c0,
+            //     transparent: true,
+            //     opacity: .6
+            // });
+
+            // create the mesh: geometry + material
+            sea = new THREE.Mesh(geometry, material);
+
+            // push it a little bit at the bottom of the scene
+            sea.position.y = -600;
+
+            console.log("Sea created")
+            scene.add(sea);
+
+            /*****************************
+            * SHADOWS 
+            ****************************/
+            // allow the sea to receive shadows
+            sea.receiveShadow = true;
+        }
+
+        function createSky() {
+            // create an empty container
+            sky = new THREE.Object3D();
+            // push its center a bit towards the bottom of the screen (like the sea)
+            sky.position.y = -600;
+
+            // choose a number of clouds to be scattered in the sky
+            const nClouds = 20;
+
+            // to distribute the clouds consistently, place them according to a uniform angle
+            const stepAngle = Math.PI * 2 / nClouds;
+
+            // create the clouds and add them to the sky mesh
+            for (let i = 0; i < nClouds; i++) {
+                // will hold the different parts (cubes) of the cloud
+                let cloudGeometries = [];
+
+                // duplicate the geometry a random number of times
+                let nBlocs = 3 + Math.floor(Math.random() * 3);
+                for (let j = 0; j < nBlocs; j++) {
+                    // let m = new THREE.Mesh(geometry, material);
+                    let cloudGeometry = new THREE.BoxGeometry(20, 20, 20);
+
+                    // set the position and the rotation of each cube randomly
+                    cloudGeometry.translate.x = j * 15;
+                    cloudGeometry.translate.y = Math.random() * 10;
+                    cloudGeometry.translate.z = Math.random() * 10;
+                    cloudGeometry.rotateZ(Math.random() * Math.PI * 2);
+                    cloudGeometry.rotateY(Math.random() * Math.PI * 2);
+
+                    // set the size of the cube randomly
+                    let s = .1 + Math.random() * 1.9;
+                    cloudGeometry.scale(s, s, s);
+
+                    cloudGeometries.push(cloudGeometry)
+
+                }
+                const cloudMergedGeom = BufferGeometryUtils.mergeBufferGeometries(cloudGeometries);
+                const cloud = new THREE.Mesh(
+                    cloudMergedGeom,
+                    new THREE.MeshPhongMaterial({ color: 0xd8d0d1 })
+                    // new THREE.MeshBasicMaterial({ color: 0xd8d0d1 })
+                )
+
+                // set the rotation and the position of each cloud
+                let a = stepAngle * i; // final angle of the cloud
+                let h = 750 + Math.random() * 200; // distance between the center of the axis and the cloud itself
+
+                // Trigonometry
+                cloud.position.y = Math.sin(a) * h;
+                cloud.position.x = Math.cos(a) * h;
+
+                // position the clouds at random depths inside of the scene
+                cloud.position.z = -400 - Math.random() * 400;
+
+                // rotate the cloud according to its position
+                cloud.rotation.z = a + Math.PI / 2;
+
+                // add the group of each cloud mesh to the sky
+                sky.add(cloud);
+            }
+
+            console.log("Sky created")
+            scene.add(sky);
+        }
+
+        function createPlane() {
+            plane = new THREE.Object3D();
+
+            const materialRed = new THREE.MeshPhongMaterial({ color: 0xf25346 });
+            const materialWhite = new THREE.MeshPhongMaterial({ color: 0xd8d0d1 });
+            const materialBrown = new THREE.MeshPhongMaterial({ color: 0x59332e });
+            const materialDarkBrown = new THREE.MeshPhongMaterial({ color: 0x23190f });
+
+            // const materialRed = new THREE.MeshBasicMaterial({ color: 0xf25346 });
+            // const materialWhite = new THREE.MeshBasicMaterial({ color: 0xd8d0d1 });
+            // const materialBrown = new THREE.MeshBasicMaterial({ color: 0x59332e });
+            // const materialDarkBrown = new THREE.MeshBasicMaterial({ color: 0x23190f });
+
+            // Create the cabin
+            let geomCockpit = new THREE.BoxGeometry(60, 50, 50);
+            let cockpit = new THREE.Mesh(geomCockpit, materialRed);
+            plane.add(cockpit);
+
+            // Create the engine
+            let geomEngine = new THREE.BoxGeometry(20, 50, 50);
+            let engine = new THREE.Mesh(geomEngine, materialWhite);
+            engine.position.x = 40;
+            plane.add(engine);
+
+            // Create the tail
+            let geomTailPlane = new THREE.BoxGeometry(15, 20, 5);
+            let tail = new THREE.Mesh(geomTailPlane, materialRed);
+            tail.position.set(-35, 25, 0);
+            plane.add(tail);
+
+            // Create the wing
+            let geomSideWing = new THREE.BoxGeometry(40, 8, 150);
+            let sideWing = new THREE.Mesh(geomSideWing, materialRed);
+            plane.add(sideWing);
+
+            // propeller
+            let geomPropeller = new THREE.BoxGeometry(20, 10, 10);
+            propeller = new THREE.Mesh(geomPropeller, materialBrown);
+
+            // blades
+            let geomBlade = new THREE.BoxGeometry(1, 100, 20);
+            let blade = new THREE.Mesh(geomBlade, materialDarkBrown);
+            blade.position.set(8, 0, 0);
+
+            // SECOND blade
+            let blade2 = blade.clone();
+            blade2.rotation.x = Math.PI / 2;
+
+            // add blades to propeller
+            propeller.add(blade);
+            propeller.add(blade2);
+
+            propeller.position.set(50, 0, 0);
+            plane.add(propeller);
+
+            plane.scale.set(0.25, 0.25, 0.25);
+            plane.position.y = 100;
+
+            console.log("Plane created")
+            scene.add(plane);
+
+            /*****************************
+            * SHADOWS 
+            ****************************/
+            // Plane meshes must cast and receive shadows
+            // DOC about traverse method for objects in THREEJS: https://threejs.org/docs/#api/en/core/Object3D.traverse
+            plane.traverse(function (child) {
+                if (child instanceof THREE.Mesh) {
+                    child.castShadow = true;
+                    child.receiveShadow = true;
+                }
+            });
+            console.log(plane)
+
+
+        }
+
+
+        function render() {
+            // rotate the propeller
+            // console.log(plane.position)
+            if (plane.position.y > 5)
+                propeller.rotation.x += 0.3;
+
+            // // rotate the background (use AxisHelper to verify which axis is the rotation one)
+            sky.rotation.z += 0.01;
+            sea.rotation.z += 0.005;
+
+            // update light helpers 
+            lightParams.helper.update();
+            lightParams.helperShadow.update();
+
+            // update plane position - light will follow the plane
+            updatePlane();
+
+            // render
+            renderer.render(scene, camera);
+        }
+
+
+        // HANDLE MOUSE EVENTS
+        function handleMouseMove(event) {
+            // convert mouse window coordinates into normalized coordinates: [-1, 1]
+            let tx = -1 + (event.clientX / window.innerWidth) * 2;
+            let ty = 1 - (event.clientY / window.innerHeight) * 2;
+            mousePos = { x: tx, y: ty };
+        }
+
+        function updatePlane() {
+            //let targetX = mousePos.x * 100;
+            let targetY = mousePos.y * 100;
+
+            // // update the airplane's position
+            // plane.position.x = targetX;
+            // plane.position.y = targetY + 100;
+
+            // update the airplane's Y position SMOOTHLY
+            plane.position.y += (targetY - plane.position.y + 100) * 0.1;
+            // update the airplane's rotation proportionally to distance between actual and target positions
+            plane.rotation.z = (targetY - plane.position.y + 100) * 0.013;
+
+        }
+
+    </script>
+</body>
+
+</html>
