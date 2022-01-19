@@ -27,16 +27,21 @@
     <script type="module">
         import * as THREE from './libs/three.module.js';
         import * as BufferGeometryUtils from './libs/BufferGeometryUtils.js'
+        import { OrbitControls } from "https://cdn.skypack.dev/pin/three@v0.136.0-4Px7Kx1INqCFBN0tXUQc/mode=imports,min/unoptimized/examples/jsm/controls/OrbitControls.js";
 
         let scene, renderer, camera;
-        let floor, sky, robot, shoulder1, shoulder2, hip1, hip2, elbow1, elbow2, ankle1, ankle2, hair;
+        let floor, sky, robot, shoulder1, shoulder2, hip1, hip2, elbow1, elbow2, ankle1, ankle2, hair, knee1, knee2;
         let helperShadow
-        let mousePos = { x: 0, y: 0 };
+        let cloudGeometries = [];
         let isMovingRight = false
         let isMovingLeft = false
         let invertMovement = false
+        let invertStaticMovement = false
+        let startInvertStaticMovement = false
+        let downMovement = false
         let acc = 0
         let maxAcc = 1
+        
 
 
         let lightParams = {
@@ -56,6 +61,7 @@
             createSky();
             createLights();
             renderer.setAnimationLoop(render);
+            const controls = new OrbitControls(camera, renderer.domElement);
         }
 
         function createScene() {
@@ -65,7 +71,7 @@
             camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 1, 1000);
             camera.position.x = 0;
             camera.position.z = 200;
-            camera.position.y = 100;
+            camera.position.y = 90;
 
             renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
@@ -86,25 +92,26 @@
 
         function createLights() {
             //Create a DirectionalLight and turn on shadows for the light
-            const light = new THREE.DirectionalLight( 0xffffff, 1, 100 );
-            light.position.set( 50, 200, 50 ); //default; light shining from top
-            light.castShadow = true; // default false
+            const light = new THREE.DirectionalLight( 0xffffff, 0.95);
+            light.position.set( 10, 60, 100 ); 
+            light.target.position.set(-10,0,-10 ); 
+            light.castShadow = true; 
             scene.add( light );
+            scene.add( light.target )
 
             // //Set up shadow properties for the light
             // light.shadow.mapSize.width = 512; // default
             // light.shadow.mapSize.height = 512; // default
-            light.shadow.camera.left = -100; // default
-            light.shadow.camera.right = 50; // default
+            light.shadowCameraLeft = -200;
+            light.shadowCameraRight = 200;
+            light.shadowCameraTop = 200;
+            light.shadowCameraBottom = -200;
+            
 
-            console.log(light.shadow.camera)
-
-            helperShadow = new THREE.CameraHelper(light.shadow.camera);
-            scene.add(helperShadow);
+            // helperShadow = new THREE.CameraHelper(light.shadow.camera);
+            // scene.add(helperShadow);
 
             
-            let helper = new THREE.DirectionalLightHelper(light, 5);
-            scene.add(helper);
         }
 
 
@@ -135,8 +142,6 @@
             const stepAngle = Math.PI * 2 / nClouds;
 
             for (let i = 0; i < nClouds; i++) {
-                let cloudGeometries = [];
-
                 let nBlocs = 3 + Math.floor(Math.random() * 3);
                 for (let j = 0; j < nBlocs; j++) {
                     let cloudGeometry = new THREE.BoxGeometry(20, 20, 20);
@@ -178,6 +183,8 @@
             scene.add(sky);
         }
 
+
+
         function createRobot() {
             robot = new THREE.Group();
 
@@ -207,10 +214,19 @@
             head.position.y = 5
             robot.add(head)
 
-            //Cabelo
-            let geometryHair = new THREE.BoxGeometry(10,1,5)
-            hair = new THREE.Mesh(geometryHair,materialBrown)
-            head.add(hair)
+            //Chapéu
+            let hatGroup = new THREE.Group()
+            let geometryBase = new THREE.CircleGeometry( 23, 32 )
+            let geometryTop = new THREE.SphereGeometry( 15, 32, 16, 0, 3.2, 0, 3.1 )
+            let hatTop = new THREE.Mesh(geometryTop, materialYellow)
+            let hatBase = new THREE.Mesh(geometryBase, materialYellow)
+            hatTop.position.y = 13.5
+            hatTop.rotation.x = -Math.PI / 2
+            hatBase.position.y = 13.5
+            hatBase.rotation.x = -Math.PI / 2
+
+            hatGroup.add(hatTop,hatBase)
+            head.add(hatGroup)
             
             //Pescoço
             let geometryNeck = new THREE.BoxGeometry(7,20,7)
@@ -321,14 +337,13 @@
             //Robot extras
             robot.scale.set(0.5, 0.5, 0.5)
             robot.rotation.y = 0
-
-            robot.castShadow = true;
-            robot.receiveShadow = true;
+            robot.position.x = 0
+            robot.position.y = 57
 
             robot.traverse(function (child) {
                 if (child instanceof THREE.Mesh) {
                     child.castShadow = true;
-                    child.receiveShadow = true;
+                    child.receiveShadow = false;
                 }
             });
 
@@ -342,8 +357,13 @@
 
         function render() {
             if(isMovingRight) {
+                startInvertStaticMovement = false;
                 sky.rotation.z += 0.01;
                 floor.rotation.z += 0.005;
+                // if(robot.rotation.z <= 0) {
+                //     robot.rotation.z += 0.001
+                // }
+                
                 if(robot.rotation.y != 3.2 && robot.rotation.y < 3.2) {
                     robot.rotation.y +=0.05
                 }
@@ -386,8 +406,12 @@
                 
             }
             else if(isMovingLeft) {
+                startInvertStaticMovement = false;
                 sky.rotation.z -= 0.01;
                 floor.rotation.z -= 0.005;
+                if(robot.rotation.z >= 0) {
+                    robot.rotation.z -= 0.001
+                }
                 if(robot.rotation.y != 0 && robot.rotation.y > 0) {
                     robot.rotation.y -=0.05
                 }
@@ -427,39 +451,84 @@
                         hip2.rotation.z += 0.03
                     }
                 }
-                
             }
-            else {
-                if(robot.rotation.y != 1.6 && robot.rotation.y > 1.6) {
-                    robot.rotation.y -=0.05
-                }
-                if(robot.rotation.y != 1.6 && robot.rotation.y < 1.6) {
-                    robot.rotation.y +=0.05
-                }
+            else {  
+                if (!startInvertStaticMovement) {
+                    if(robot.rotation.y != 1.6 && robot.rotation.y > 1.6) {
+                        robot.rotation.y -=0.05
+                    }
+                    if(robot.rotation.y != 1.6 && robot.rotation.y < 1.6) {
+                        robot.rotation.y +=0.05
+                    }
+                    if(round(robot.rotation.y,1) == 1.6) {
+                        setTimeout(() => {
+                            startInvertStaticMovement = true;
+                        }, 100)
+                        console.log("hey");
+                    }
 
-                if(round(shoulder1.rotation.z, 1) > 0) {
-                    shoulder1.rotation.z -= 0.05
+                    if(round(shoulder1.rotation.z, 1) > 0) {
+                        shoulder1.rotation.z -= 0.05
+                    }
+                    if(round(shoulder1.rotation.z, 1) < 0) {
+                        shoulder1.rotation.z += 0.05
+                    }
+                    if(round(shoulder2.rotation.z, 1) > 0) {
+                        shoulder2.rotation.z -= 0.05
+                    }
+                    if(round(shoulder2.rotation.z, 1) < 0) {
+                        shoulder2.rotation.z += 0.05
+                    }
+                    if(round(hip1.rotation.z, 1) > 0) {
+                        hip1.rotation.z -= 0.05
+                    }
+                    if(round(hip1.rotation.z, 1) < 0) {
+                        hip1.rotation.z += 0.05
+                    }
+                    if(round(hip2.rotation.z, 1) > 0) {
+                        hip2.rotation.z -= 0.05
+                    }
+                    if(round(hip2.rotation.z, 1) < 0) {
+                        hip2.rotation.z += 0.05
+                    }
                 }
-                if(round(shoulder1.rotation.z, 1) < 0) {
-                    shoulder1.rotation.z += 0.05
-                }
-                if(round(shoulder2.rotation.z, 1) > 0) {
-                    shoulder2.rotation.z -= 0.05
-                }
-                if(round(shoulder2.rotation.z, 1) < 0) {
-                    shoulder2.rotation.z += 0.05
-                }
-                if(round(hip1.rotation.z, 1) > 0) {
-                    hip1.rotation.z -= 0.05
-                }
-                if(round(hip1.rotation.z, 1) < 0) {
-                    hip1.rotation.z += 0.05
-                }
-                if(round(hip2.rotation.z, 1) > 0) {
-                    hip2.rotation.z -= 0.05
-                }
-                if(round(hip2.rotation.z, 1) < 0) {
-                    hip2.rotation.z += 0.05
+                else {
+                    if(robot.rotation.y >= 1.65) {
+                        invertStaticMovement = true
+                    }
+                    if(robot.rotation.y <= 1.55) {
+                        invertStaticMovement = false
+                    }
+                    if(acc < maxAcc) {
+                        if(invertStaticMovement) {
+                            robot.rotation.y -= 0.00025 * acc
+                            robot.rotation.z -= 0.0001 * acc
+                            robot.position.y -= 0.0001 * acc
+                        }
+                        acc+= 0.005
+                    }
+                    else {
+                        if(invertStaticMovement) {
+                            robot.rotation.y -= 0.00025
+                            robot.rotation.z -= 0.0001 
+                            robot.position.y -= 0.002
+                        }
+                    }
+                    if(acc < maxAcc) {
+                        if(!invertStaticMovement) {
+                            robot.rotation.y += 0.00025 *acc
+                            robot.rotation.z += 0.0001 * acc
+                            robot.position.y += 0.002 * acc
+                        }
+                        acc+= 0.005
+                    }
+                    else {
+                        if(!invertStaticMovement) {
+                            robot.rotation.y += 0.00025
+                            robot.rotation.z += 0.0001 
+                            robot.position.y += 0.002
+                        }
+                    }
                 }
             }
 
@@ -467,7 +536,7 @@
             // update plane position - light will follow the plane
             updateRobot();
 
-            helperShadow.update()
+            // 
 
             // render
             renderer.render(scene, camera);
@@ -478,31 +547,45 @@
         
 
         function updateRobot() {
-            let targetX = mousePos.x * 100;
-            let targetY = mousePos.y * 100;
-
-            // update the airplane's position
-            robot.position.x = 0
-            robot.position.y = 80
-
-    
+            if (isMovingRight || isMovingLeft) {
+                if(robot.position.y >= 59) {
+                    downMovement = true
+                }
+                if(robot.position.y <= 57) {
+                    downMovement = false
+                }
+                if(downMovement) {
+                    robot.position.y -= 0.06
+                }
+                if(!downMovement) {
+                    robot.position.y += 0.06
+                }
+            }
         }
 
         document.addEventListener("keydown", e => {
             if(e.key == 'd') {
+                robot.rotation.z = -0.07
                 isMovingRight = true
             }
             if(e.key == 'a') {
+                robot.rotation.z = -0.07
                 isMovingLeft = true
             }
         })
 
         document.addEventListener("keyup", e => {
             if(e.key == 'd') {
+                robot.rotation.z = 0
                 isMovingRight = false
+                robot.position.x = 0
+                robot.position.y = 57
             }
             if(e.key == 'a') {
+                robot.rotation.z = 0
                 isMovingLeft = false
+                robot.position.x = 0
+                robot.position.y = 57
             }
         })
 
