@@ -29,7 +29,8 @@
         import * as BufferGeometryUtils from './libs/BufferGeometryUtils.js'
 
         let scene, renderer, camera;
-        let floor, sky, robot, shoulder1, shoulder2, hip1, hip2, elbow1, elbow2, ankle1, ankle2;
+        let floor, sky, robot, shoulder1, shoulder2, hip1, hip2, elbow1, elbow2, ankle1, ankle2, hair;
+        let helperShadow
         let mousePos = { x: 0, y: 0 };
         let isMovingRight = false
         let isMovingLeft = false
@@ -59,17 +60,17 @@
 
         function createScene() {
             scene = new THREE.Scene();
-            scene.fog = new THREE.Fog(0xF7AAAA, 100);
+            // scene.fog = new THREE.Fog(0xFFFFFF, 100);
 
             camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 1, 1000);
             camera.position.x = 0;
             camera.position.z = 200;
             camera.position.y = 100;
 
-            renderer = new THREE.WebGLRenderer();
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
             renderer.shadowMap.enabled = true;
-            renderer.setClearColor("#361d32");
+            // renderer.setClearColor("#87CEEB");
             document.getElementById('world').appendChild(renderer.domElement);
 
             window.addEventListener('resize', handleWindowResize, false);
@@ -86,15 +87,24 @@
         function createLights() {
             //Create a DirectionalLight and turn on shadows for the light
             const light = new THREE.DirectionalLight( 0xffffff, 1, 100 );
-            light.position.set( 0, 1, 0 ); //default; light shining from top
+            light.position.set( 50, 200, 50 ); //default; light shining from top
             light.castShadow = true; // default false
             scene.add( light );
 
-            //Set up shadow properties for the light
-            light.shadow.mapSize.width = 512; // default
-            light.shadow.mapSize.height = 512; // default
-            light.shadow.camera.near = 0.5; // default
-            light.shadow.camera.far = 500; // default
+            // //Set up shadow properties for the light
+            // light.shadow.mapSize.width = 512; // default
+            // light.shadow.mapSize.height = 512; // default
+            light.shadow.camera.left = -100; // default
+            light.shadow.camera.right = 50; // default
+
+            console.log(light.shadow.camera)
+
+            helperShadow = new THREE.CameraHelper(light.shadow.camera);
+            scene.add(helperShadow);
+
+            
+            let helper = new THREE.DirectionalLightHelper(light, 5);
+            scene.add(helper);
         }
 
 
@@ -103,7 +113,7 @@
             geometry.rotateX(-Math.PI / 2);
 
             let material = new THREE.MeshPhongMaterial({
-                color: 0x68c3c0,
+                color: 0x7DEE77,
                 transparent: true,
                 opacity: .6,
                 flatShading: true
@@ -113,7 +123,6 @@
 
             floor = new THREE.Mesh(geometry, material);
             floor.position.y = -600;
-            floor.castShadow = false
             floor.receiveShadow = true
             scene.add(floor);
         }
@@ -145,7 +154,7 @@
                 }
 
                 const cloudMergedGeom = BufferGeometryUtils.mergeBufferGeometries(cloudGeometries);
-                const cloud = new THREE.Mesh(cloudMergedGeom, new THREE.MeshBasicMaterial({ color: 0xedd2cb })
+                const cloud = new THREE.Mesh(cloudMergedGeom, new THREE.MeshBasicMaterial({ color: 0xf1f1f1 })
                 )
 
                 // set the rotation and the position of each cloud
@@ -173,10 +182,12 @@
             robot = new THREE.Group();
 
 
-            const materialBege = new THREE.MeshBasicMaterial({ color: 0xfdebd3 });
-            const materialBrown = new THREE.MeshBasicMaterial({ color: 0x59332e });
-            const materialRed = new THREE.MeshBasicMaterial({ color: 0xf25346 });
-            const materialBlue = new THREE.MeshBasicMaterial({color: 0x264e70})
+            const materialBege = new THREE.MeshPhongMaterial({ color: 0xfdebd3 });
+            const materialBrown = new THREE.MeshPhongMaterial({ color: 0x624226 });
+            const materialRed = new THREE.MeshPhongMaterial({ color: 0xf25346 });
+            const materialBlue = new THREE.MeshPhongMaterial({color: 0x264e70})
+            const materialYellow = new THREE.MeshPhongMaterial({color: 0xffff00})
+            const materialBlack = new THREE.MeshPhongMaterial({color: 0x353535})
 
             //Ombros
             //1
@@ -195,6 +206,11 @@
             let head = new THREE.Mesh(geometryHead,materialBege)
             head.position.y = 5
             robot.add(head)
+
+            //Cabelo
+            let geometryHair = new THREE.BoxGeometry(10,1,5)
+            hair = new THREE.Mesh(geometryHair,materialBrown)
+            head.add(hair)
             
             //Pescoço
             let geometryNeck = new THREE.BoxGeometry(7,20,7)
@@ -204,7 +220,7 @@
 
             //Tronco
             let geometryChest = new THREE.BoxGeometry(20,45,35)
-            let chest = new THREE.Mesh(geometryChest,materialBlue)
+            let chest = new THREE.Mesh(geometryChest,materialYellow)
             chest.position.y = -40;
             robot.add(chest)
 
@@ -261,13 +277,13 @@
             //Pernas
             //1
             let geometryLeg = new THREE.BoxGeometry(20,45,13)
-            let leg1 = new THREE.Mesh(geometryLeg,materialRed)
+            let leg1 = new THREE.Mesh(geometryLeg,materialBlue)
             leg1.position.y = -25
             leg1.position.z = 0
             leg1.position.x = 5
             hip1.add(leg1)
             //2
-            let leg2 = new THREE.Mesh(geometryLeg,materialRed)
+            let leg2 = new THREE.Mesh(geometryLeg,materialBlue)
             leg2.position.y = -25
             leg2.position.z = -3
             leg1.position.x = 5
@@ -290,13 +306,13 @@
             //Pés
             //1
             let geometryFoot = new THREE.BoxGeometry(27,7,13)
-            let foot1 = new THREE.Mesh(geometryFoot,materialBlue)
+            let foot1 = new THREE.Mesh(geometryFoot,materialBlack)
             foot1.position.y = -6
             foot1.position.z = 0
             foot1.position.x = -3
             ankle1.add(foot1)
             //2
-            let foot2 = new THREE.Mesh(geometryFoot,materialBlue)
+            let foot2 = new THREE.Mesh(geometryFoot,materialBlack)
             foot2.position.y = -6
             foot2.position.z = 0
             foot2.position.x = -3
@@ -309,12 +325,12 @@
             robot.castShadow = true;
             robot.receiveShadow = true;
 
-            // robot.traverse(function (child) {
-            //     if (child instanceof THREE.Mesh) {
-            //         child.castShadow = true;
-            //         child.receiveShadow = true;
-            //     }
-            // });
+            robot.traverse(function (child) {
+                if (child instanceof THREE.Mesh) {
+                    child.castShadow = true;
+                    child.receiveShadow = true;
+                }
+            });
 
             scene.add(robot);
         }
@@ -451,6 +467,8 @@
             // update plane position - light will follow the plane
             updateRobot();
 
+            helperShadow.update()
+
             // render
             renderer.render(scene, camera);
         }
@@ -489,6 +507,12 @@
         })
 
     </script>
+    <style>
+        .world {
+            background: -webkit-linear-gradient(#87CEEB, #e2e2e2);
+	        background: linear-gradient(#87CEEB, #e2e2e2);
+        }
+    </style>
 </body>
 
 </html>
