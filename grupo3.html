@@ -31,6 +31,19 @@
 
         let scene, renderer, camera;
         let floor, sky, robot, shoulder1, shoulder2, hip1, hip2, elbow1, elbow2, ankle1, ankle2, hair, knee1, knee2, eye1, eyeGroup2, eyeBall, mustache, mouth, tongue;
+        let corda, corda2, corda3
+        let crane,base,obj,obj1,obj2,obj3,obj4,obj5, obj6, obj7, obj8, obj9, obj10, obj11, obj12, obj13, obj14, obj15, pontaObj, pontaObj2, pontaObj3
+        let carrinho, cordaCarrinho, bolaCorda
+        let  floorAnchor, anchorBola
+        let mover_esquerda = false
+        let mover_direita = false
+        let moverCarrinho_esquerda = false
+        let moverCarrinho_direita = false
+        let descerCorda = false
+        let subirCorda = false
+        let mudarObjeto = false
+        let tam = 100
+        let geometry2 
         let helperShadow
         let cloudGeometries = [];
         let isMovingRight = false
@@ -59,6 +72,7 @@
         window.onload = function init() {
             createScene();
             createRobot();
+            createCrane();
             createFloor();
             createSky();
             createLights();
@@ -68,12 +82,12 @@
 
         function createScene() {
             scene = new THREE.Scene();
-            scene.fog = new THREE.Fog(0xF1F1F1, 100);
+            // scene.fog = new THREE.Fog(0xF1F1F1, 100);
 
             camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 1, 1000);
             camera.position.x = 0;
-            camera.position.z = 200;
-            camera.position.y = 90;
+            camera.position.z = 400;
+            camera.position.y = 80;
 
             renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
@@ -93,29 +107,337 @@
         }
 
         function createLights() {
-            //Create a DirectionalLight and turn on shadows for the light
-            const light = new THREE.DirectionalLight( 0xffffff, 0.95);
-            light.position.set( 10, 60, 100 ); 
-            light.target.position.set(-10,0,-10 ); 
-            light.castShadow = true; 
+
+            const light = new THREE.DirectionalLight( 0xffffff, 0.90);
+            
             scene.add( light );
             scene.add( light.target )
-
-            // //Set up shadow properties for the light
-            // light.shadow.mapSize.width = 512; // default
-            // light.shadow.mapSize.height = 512; // default
             light.shadowCameraLeft = -200;
             light.shadowCameraRight = 200;
             light.shadowCameraTop = 200;
             light.shadowCameraBottom = -200;
+            light.position.set( 10, 60, 100 ); 
+            light.target.position.set(-10,0,-10 ); 
+            light.castShadow = true; 
+        }
+
+        function createCrane(){
+            crane = new THREE.Group();
+            obj = new THREE.Group();
+
+            pontaObj = new THREE.Group();
+            pontaObj2 = new THREE.Group();
+            pontaObj3 = new THREE.Group();
+            carrinho = new THREE.Group();
+            cordaCarrinho = new THREE.Group();
+            bolaCorda = new THREE.Group();
+
+            anchorBola = new THREE.Group();
+            
+            
             
 
-            // helperShadow = new THREE.CameraHelper(light.shadow.camera);
-            // scene.add(helperShadow);
+            const materialBege = new THREE.MeshBasicMaterial({ color: 0xfdebd3 });
+            const materialBrown = new THREE.MeshBasicMaterial({ color: 0x59332e });
+            const materialRed = new THREE.MeshBasicMaterial({ color: 0xf25346 });
+            const materialBlue = new THREE.MeshBasicMaterial({color: 0x264e70})
+            const materialBlack = new THREE.MeshBasicMaterial({color: 0x353535})
+            const materialYellow = new THREE.MeshBasicMaterial({color: 0xc3d126})
+            
+
+           
+            
+            let geometryBase = new THREE.BoxGeometry(200,20,200)
+            let base = new THREE.Mesh(geometryBase,materialBlack)
+            base.position.y = 13
+            base.position.z =0
+            crane.add(base)
+
+            //obj
+            let geometryBase2 = new THREE.BoxGeometry(10,100,10)
+            let base1 = new THREE.Mesh(geometryBase2,materialYellow)
+            base1.position.y = 70
+            base1.position.z =-35
+            base1.position.x =-40
+            obj.add(base1)
+
+            
+            let base2 = new THREE.Mesh(geometryBase2,materialYellow)
+            base2.position.y = 70
+            base2.position.z =-35
+            base2.position.x =40
+            obj.add(base2)
+
+            
+            let base3 = new THREE.Mesh(geometryBase2,materialYellow)
+            base3.position.y = 70
+            base3.position.z =45
+            base3.position.x =-40
+            obj.add(base3)
+
+            
+            let base4 = new THREE.Mesh(geometryBase2,materialYellow)
+            base4.position.y = 70
+            base4.position.z =45
+            base4.position.x =40
+            obj.add(base4)
+
+            
+            let base5 = new THREE.Mesh(geometryBase2,materialYellow)
+            base5.position.y = 70
+            base5.position.z =45
+            base5.position.x =0
+            base5.rotation.z= 40
+            obj.add(base5)
+
+            
+            let base6 = new THREE.Mesh(geometryBase2,materialYellow)
+            base6.position.y = 70
+            base6.position.z =-35
+            base6.position.x =0
+            base6.rotation.z= 70
+            obj.add(base6)
+
+            
+            let base7 = new THREE.Mesh(geometryBase2,materialYellow)
+            base7.position.y = 70
+            base7.position.z =10
+            base7.position.x =40
+            base7.rotation.x= 40
+            obj.add(base7)
+
+            
+            let base8 = new THREE.Mesh(geometryBase2,materialYellow)
+            base8.position.y = 70
+            base8.position.z =10
+            base8.position.x =-40
+            base8.rotation.x= 70
+            obj.add(base8)
+
+
+            // pontaObj
+
+            let geometryBase3 = new THREE.BoxGeometry(150,100,100)
+            let ponta1 = new THREE.Mesh(geometryBase3,materialYellow)
+            ponta1.position.y = 0
+            ponta1.position.z =0
+            ponta1.position.x =30
+            ponta1.rotation.x= 0
+            pontaObj.add(ponta1)
+
+
+            // ponta do Outro lado 
+
+            let geometryBase4 = new THREE.BoxGeometry(10,120,10)
+            let ponta2 = new THREE.Mesh(geometryBase4,materialYellow)
+            ponta2.position.y = 180
+            ponta2.position.z =45
+            ponta2.position.x =40
+            pontaObj2.add(ponta2)
+
+            
+            let ponta3 = new THREE.Mesh(geometryBase4,materialYellow)
+            ponta3.position.y = 180
+            ponta3.position.z =-35
+            ponta3.position.x =40
+            pontaObj2.add(ponta3)
+
+            let geometryBase5 = new THREE.BoxGeometry(10,150,10)
+            let ponta4 = new THREE.Mesh(geometryBase5,materialYellow)
+            ponta4.position.y = 180
+            ponta4.position.z =45
+            ponta4.rotation.z = -(Math.PI /6);
+            pontaObj2.add(ponta4)
+
+            let ponta5 = new THREE.Mesh(geometryBase5,materialYellow)
+            ponta5.position.y = 180
+            ponta5.position.z =-35
+            ponta5.rotation.z = -(Math.PI /6);
+            pontaObj2.add(ponta5)
+
+
+
+
+            // ponta de cima 
+
+            
+            let ponta6 = new THREE.Mesh(geometryBase4,materialYellow)
+            ponta6.position.y = 180
+            ponta6.position.z =45
+            ponta6.position.x =40
+            pontaObj3.add(ponta6)
+
+            
+            let ponta7 = new THREE.Mesh(geometryBase4,materialYellow)
+            ponta7.position.y = 180
+            ponta7.position.z =-35
+            ponta7.position.x =40
+            pontaObj3.add(ponta7)
+
+            
+            let ponta8 = new THREE.Mesh(geometryBase5,materialYellow)
+            ponta8.position.y = 180
+            ponta8.position.z =45
+            ponta8.rotation.z = -(Math.PI /6);
+            pontaObj3.add(ponta8)
+
+            let ponta9 = new THREE.Mesh(geometryBase5,materialYellow)
+            ponta9.position.y = 180
+            ponta9.position.z =-35
+            ponta9.rotation.z = -(Math.PI /6);
+            pontaObj3.add(ponta9)
+
+            let geometry1 = new THREE.CylinderGeometry(1, 1, 455, 10);
+            
+
+            corda = new THREE.Mesh(geometry1, materialBlack);
+            corda.position.x = -120
+            corda.position.y = -140
+            corda.rotation.z = -(Math.PI/6)
+            ponta9.add(corda)
+
+            corda2 = new THREE.Mesh(geometry1, materialBlack);
+            corda2.position.x = -120
+            corda2.position.y = -140
+            corda2.position.z = 80
+            corda2.rotation.z = -(Math.PI/6)
+            ponta9.add(corda2)
+            
+            pontaObj3.rotation.y = -(Math.PI)
+            pontaObj3.position.z = 10
+
+
+            // Carrinho
+
+            let geometryBase6 = new THREE.BoxGeometry(30,100,100)
+            let parte = new THREE.Mesh(geometryBase6,materialBlack)
+            parte.position.y = 0
+            parte.position.z =5
+            parte.position.x =50
+            parte.rotation.x= 0
+            carrinho.add(parte)
+
+
+            // corda do carrinho
+            geometry2 = new THREE.CylinderGeometry(5, 5, tam, 100);
+
+            let cordaCar = new THREE.Mesh(geometry2, materialBlack);
+            cordaCar.position.x = 80
+            cordaCar.rotation.z = -(Math.PI/2)
+            cordaCarrinho.add(cordaCar)
+
+            // ponta da corda do carrinho 
+            let geometry3 = new THREE.SphereGeometry( 15, 32, 16 );
+
+            let bola = new THREE.Mesh(geometry3, materialBlack);
+            bola.position.x = 120
+            bola.rotation.z = -(Math.PI/2)
+            bolaCorda.add(bola)
+            anchorBola.add(bolaCorda)
+             
+          
+     
+            
+            
+            
+
+           
+            
+            
+            obj2 = obj.clone()
+            obj3 = obj.clone()
+            obj4 = obj.clone()
+            obj5 = obj.clone()
+            obj6 = obj.clone()
+            obj7 = obj.clone()
+            obj8 = obj.clone()
+            obj9 = obj.clone()
+            obj10 = obj.clone()
+            obj11 = obj.clone()
+            obj12 = obj.clone()
+            obj13 = obj.clone()
+            obj14 = obj.clone()
+            obj15 = obj.clone()
+            
+            const axesHelper1 = new THREE.AxesHelper( 35 );
+            cordaCarrinho.add( axesHelper1 );
+            
+            obj2.position.y = 100;
+            obj3.position.y = 200;
+
+            obj4.position.y = 300;
+            // obj4.position.x = -75;
+            // obj4.rotation.z = -(Math.PI /2);
+
+            obj5.position.y = 450;
+            obj5.position.x = 15;
+            obj5.rotation.z = -(Math.PI /2);
+
+            obj6.position.y = 450;
+            obj6.position.x = 115;
+            obj6.rotation.z = -(Math.PI /2);
+
+            obj7.position.y = 450;
+            obj7.position.x = 215;
+            obj7.rotation.z = -(Math.PI /2);
+
+            obj8.position.y = 450;
+            obj8.position.x = 315;
+            obj8.rotation.z = -(Math.PI /2);
+
+            obj9.position.y = 450;
+            obj9.position.x = 415;
+            obj9.rotation.z = -(Math.PI /2);
+
+            obj10.position.y = 450;
+            obj10.position.x = -155;
+            obj10.rotation.z = -(Math.PI /2);
+
+            obj11.position.y = 450;
+            obj11.position.x = -255;
+            obj11.rotation.z = -(Math.PI /2);
+
+            obj12.position.y = 385;
+            
+            obj13.position.y = 485;
+
+
+            obj15.position.y = 450;
+            obj15.position.x = -355;
+            obj15.rotation.z = -(Math.PI /2);
+
+            crane.add(obj)
+            obj15.add(pontaObj)
+            obj9.add(pontaObj2)
+            obj13.add(pontaObj3)
+            obj6.add(carrinho)
+            carrinho.add(cordaCarrinho)
+            carrinho.add(anchorBola)
+            // cordaCarrinho.add(anchorBola)
+            // cordaCarrinho.add(bolaCorda)
+            
+            obj.add(obj1)
+            obj.add(obj2)
+            obj.add(obj3)
+            obj.add(obj4)
+            obj.add(obj5)
+            obj.add(obj6)
+            obj.add(obj7)
+            obj.add(obj8)
+            obj.add(obj9)
+            obj.add(obj10)
+            obj.add(obj11)
+            obj.add(obj12)
+            obj.add(obj13)
+            obj.add(obj15)
+
+            crane.scale.set(0.5, 0.5, 0.5)
+            
+
+            
 
             
         }
-
 
         function createFloor() {
             let geometry = new THREE.CylinderGeometry(600, 600, 800, 40, 10);
@@ -133,6 +455,15 @@
             floor.position.y = -600;
             floor.receiveShadow = true
             scene.add(floor);
+
+            floor.add(crane);
+
+            floorAnchor = new THREE.Object3D()
+            floor.add(floorAnchor)
+            floorAnchor.position.y = 600
+            floorAnchor.position.z = -250
+            
+            floorAnchor.add(crane)
         }
 
         function createSky() {
@@ -183,8 +514,6 @@
 
             scene.add(sky);
         }
-
-
 
         function createRobot() {
             robot = new THREE.Group();
@@ -271,6 +600,7 @@
 
             hatGroup.add(hatTop,hatBase)
             head.add(hatGroup)
+
             
             //Pescoço
             let geometryNeck = new THREE.BoxGeometry(7,20,7)
@@ -383,6 +713,7 @@
             robot.rotation.y = 0
             robot.position.x = 0
             robot.position.y = 57
+            robot.position.z = 100
 
             robot.traverse(function (child) {
                 if (child instanceof THREE.Mesh) {
@@ -575,6 +906,31 @@
                     }
                 }
             }
+            if(mudarObjeto == false){
+                if(mover_direita ){                
+                obj.rotation.y +=0.01
+                }
+                else if(mover_esquerda){
+                obj.rotation.y -=0.01
+                }
+            }
+            else{
+               if(moverCarrinho_direita &&  carrinho.position.y < 480){
+                carrinho.position.y +=2
+               }
+               else if(moverCarrinho_esquerda && carrinho.position.y > 0){
+                carrinho.position.y -=2
+                }
+                else if(descerCorda && cordaCarrinho.scale.x < 2.1){ 
+                    cordaCarrinho.scale.x +=0.01
+                    anchorBola.position.x +=1.5
+                    
+                }
+                else if(subirCorda && cordaCarrinho.scale.x > 1){
+                    cordaCarrinho.scale.x -=0.01 
+                    anchorBola.position.x -=1.5               
+                }
+            }
 
 
             // update plane position - light will follow the plane
@@ -585,10 +941,6 @@
             // render
             renderer.render(scene, camera);
         }
-
-
-        // HANDLE MOUSE EVENTS
-        
 
         function updateRobot() {
             if (isMovingRight || isMovingLeft) {
@@ -616,6 +968,20 @@
                 robot.rotation.z = -0.07
                 isMovingLeft = true
             }
+            if(e.key == 'ArrowRight') {
+                mover_direita = true
+                moverCarrinho_direita = true
+            }
+            if(e.key == 'ArrowLeft') {
+                mover_esquerda = true
+                moverCarrinho_esquerda = true
+            }
+            if(e.key == 'ArrowUp') {
+               subirCorda = true
+            }
+            if(e.key == 'ArrowDown') {
+                descerCorda = true
+            }
         })
 
         document.addEventListener("keyup", e => {
@@ -631,6 +997,30 @@
                 robot.position.x = 0
                 robot.position.y = 57
             }
+            if(e.key == 'ArrowRight') {
+                mover_direita = false
+                moverCarrinho_direita = false
+            }
+            if(e.key == 'ArrowLeft') {
+                mover_esquerda = false
+                moverCarrinho_esquerda = false
+            }
+            if(e.key == 'ArrowUp') {
+               subirCorda = false
+            }
+            if(e.key == 'ArrowDown') {
+                descerCorda = false
+            }
+        })
+
+        document.addEventListener("keypress", e => {
+            if(e.key == 'Enter' && mudarObjeto == false) {
+                mudarObjeto = true
+            }
+            else if(e.key == 'Enter'){
+                mudarObjeto = false
+            }
+           
         })
 
     </script>

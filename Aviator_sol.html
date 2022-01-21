@@ -323,6 +323,9 @@
             propeller.position.set(50, 0, 0);
             plane.add(propeller);
 
+            const axesHelper = new THREE.AxesHelper( 199 );
+            propeller.add( axesHelper );
+
             plane.scale.set(0.25, 0.25, 0.25);
             plane.position.y = 100;
 
